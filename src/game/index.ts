@@ -1,3 +1,4 @@
+import { cardActionEvent, cardOutcomeEvent } from "./events.js";
 import type { GameMountOptions, MountedGame } from "@ifsoul/adapter-sdk";
 import {
   decisionContext,
@@ -18,7 +19,7 @@ function append(parent: Node, ...children: Node[]) {
 
 export async function mount(
   container: HTMLElement,
-  options: GameMountOptions
+  options: GameMountOptions,
 ): Promise<MountedGame> {
   const root = document.createElement("section");
   root.className = "soul-cards";
@@ -75,7 +76,7 @@ export async function mount(
           } ${card.suit}`;
       tile.setAttribute(
         "aria-label",
-        hidden ? "Face-down card" : tile.textContent
+        hidden ? "Face-down card" : tile.textContent,
       );
       append(row, tile);
     }
@@ -124,7 +125,7 @@ export async function mount(
       table,
       portrait,
       hand(name, companion, phase === "player"),
-      hand("You", player, false)
+      hand("You", player, false),
     );
     const state = document.createElement("p");
     state.setAttribute("role", "status");
@@ -136,7 +137,7 @@ export async function mount(
     append(
       controls,
       button("Hit · H", "hit", paused || phase !== "player"),
-      button("Stand · S", "stand", paused || phase !== "player")
+      button("Stand · S", "stand", paused || phase !== "player"),
     );
     if (phase === "result")
       append(
@@ -144,8 +145,8 @@ export async function mount(
         button(
           round === 5 ? "Play another match" : "Next round",
           "next",
-          paused
-        )
+          paused,
+        ),
       );
     const rules = document.createElement("details");
     const summary = document.createElement("summary");
@@ -158,7 +159,7 @@ export async function mount(
     if (focused) {
       const nextFocus = focusedAction
         ? root.querySelector<HTMLButtonElement>(
-            `button[data-action="${focusedAction}"]:not(:disabled)`
+            `button[data-action="${focusedAction}"]:not(:disabled)`,
           )
         : null;
       (nextFocus ?? root).focus({ preventScroll: true });
@@ -184,21 +185,21 @@ export async function mount(
       result === "tie"
         ? "Round tied"
         : result === "player"
-        ? "You win the round"
-        : `${name} wins the round`
+          ? "You win the round"
+          : `${name} wins the round`
     }. You: ${handValue(player)}; ${name}: ${handValue(companion)}.${
       round === 5
         ? ` Match complete: ${
             playerWins === companionWins
               ? "a tie"
               : playerWins > companionWins
-              ? "you win"
-              : `${name} wins`
+                ? "you win"
+                : `${name} wins`
           }.`
         : ""
     }`;
     const reportId = `${matchId}:round:${round}`;
-    options.bridge.report({ id: reportId, summary: status, kind: "outcome" });
+    options.bridge.report(cardOutcomeEvent(reportId, status));
     render();
     const token = epoch;
     void options.bridge
@@ -261,6 +262,13 @@ export async function mount(
           speech = "I’ll trust my first instinct with this hand.";
           bubble.say(speech);
         }
+        options.bridge.report(
+          cardActionEvent(
+            `${matchId}:${round}:companion:${roundDecisions}`,
+            "agent",
+            choice as "hit" | "stand",
+          ),
+        );
         if (choice === "stand") {
           finish();
           break;
@@ -286,6 +294,13 @@ export async function mount(
       }
       startRound();
     } else if (phase === "player" && (action === "hit" || action === "stand")) {
+      options.bridge.report(
+        cardActionEvent(
+          `${matchId}:${round}:player:${player.length}:${action}`,
+          "user",
+          action,
+        ),
+      );
       if (action === "hit") player.push(draw());
       if (action === "stand" || handValue(player) >= 21) {
         phase = "companion";
@@ -297,7 +312,7 @@ export async function mount(
   }
   const click = (event: Event) => {
     const target = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      "button[data-action]"
+      "button[data-action]",
     );
     if (target && !target.disabled) act(target.dataset.action!);
   };
