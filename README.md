@@ -80,3 +80,22 @@ The standalone entry already includes its game's styles through the game module.
 Independent validation used source copies outside the Core checkout, including
 the supplied vendor tarball and lockfile, followed by frozen installation and
 checks. These were filesystem copies, not clones of a committed repository.
+
+## Companion portraits
+
+Mira, Rook and Pip each have an original ImageGen portrait embedded in the game
+package. The same portraits appear in the first-party chat and companion selector;
+the head at the table changes with the selected identity. The table starts at the
+top of its host container, with the round label and portrait inside the play area.
+Unknown custom identities show their name without assigning another companion's
+face. Portrait PNG sources and prompts are retained in the local artwork workspace.
+
+## In-game speech
+
+The host owns its speech bubble, placement and animation. It implements the
+optional `MountedGame.say(speech)` presentation API for player-requested chat.
+Autonomous/requested game dialogue is displayed after the game's normal freshness
+checks. Bubbles type the text visually, announce the whole line accessibly, respect
+reduced motion and release timers/animations on pause or destruction. The SDK
+returns authored scenario/fallback reactions instead of quoting raw host reports;
+model plan explanations are not dialogue. No action authority is added.

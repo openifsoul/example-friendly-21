@@ -7,6 +7,10 @@ import {
   type Card,
 } from "./rules.js";
 import "./style.css";
+import { createSpeechBubble } from "./speech-bubble.js";
+import miraPortrait from "./assets/mira.webp";
+import rookPortrait from "./assets/rook.webp";
+import pipPortrait from "./assets/pip.webp";
 
 function append(parent: Node, ...children: Node[]) {
   for (const child of children) parent.appendChild(child);
@@ -14,13 +18,14 @@ function append(parent: Node, ...children: Node[]) {
 
 export async function mount(
   container: HTMLElement,
-  options: GameMountOptions,
+  options: GameMountOptions
 ): Promise<MountedGame> {
   const root = document.createElement("section");
   root.className = "soul-cards";
   root.setAttribute("aria-label", "Friendly 21 card game");
   root.tabIndex = 0;
   append(container, root);
+  const bubble = createSpeechBubble(root, options.character.name, false);
   let round = 0,
     player: Card[] = [],
     companion: Card[] = [],
@@ -35,8 +40,7 @@ export async function mount(
     destroyed = false,
     busy = false;
   let speech = "Five rounds. A little luck, a little nerve. Ready?",
-    status = "",
-    source = "";
+    status = "";
   const name = options.character.name;
   let matchId = globalThis.crypto.randomUUID();
   const draw = () => deck.pop()!;
@@ -53,7 +57,9 @@ export async function mount(
     const area = document.createElement("div");
     area.className = "sc-hand";
     const title = document.createElement("h3");
-    title.textContent = `${label} · ${hidden ? "cards hidden" : handValue(cards)}`;
+    title.textContent = `${label} · ${
+      hidden ? "cards hidden" : handValue(cards)
+    }`;
     append(area, title);
     const row = document.createElement("div");
     row.className = "sc-card-row";
@@ -62,10 +68,14 @@ export async function mount(
       tile.className = `sc-card${hidden ? " sc-hidden" : ""}`;
       tile.textContent = hidden
         ? "✦"
-        : `${({ 1: "A", 11: "J", 12: "Q", 13: "K" } as Record<number, string>)[card.rank] ?? card.rank} ${card.suit}`;
+        : `${
+            ({ 1: "A", 11: "J", 12: "Q", 13: "K" } as Record<number, string>)[
+              card.rank
+            ] ?? card.rank
+          } ${card.suit}`;
       tile.setAttribute(
         "aria-label",
-        hidden ? "Face-down card" : tile.textContent,
+        hidden ? "Face-down card" : tile.textContent
       );
       append(row, tile);
     }
@@ -78,24 +88,44 @@ export async function mount(
     const focusedAction = (document.activeElement as HTMLElement | null)
       ?.dataset.action;
     root.replaceChildren();
-    const eyebrow = document.createElement("p");
-    eyebrow.className = "sc-eyebrow";
-    eyebrow.textContent = `FRIENDLY 21 / ROUND ${round} OF 5`;
+    const portrait = document.createElement("div");
+    portrait.className = "sc-portrait";
+    const face = document.createElement("img");
+    const identity = options.character.id.toLowerCase();
+    const portraitId = ["mira", "rook", "pip"].includes(identity)
+      ? identity
+      : options.character.name.toLowerCase();
+    const portraitURL = (
+      { mira: miraPortrait, rook: rookPortrait, pip: pipPortrait } as Record<
+        string,
+        string
+      >
+    )[portraitId];
+    if (portraitURL) {
+      face.src = portraitURL;
+      face.alt = `${name} at the card table`;
+      face.width = face.height = 128;
+      portrait.appendChild(face);
+    }
+    const title = document.createElement("div");
     const heading = document.createElement("h2");
-    heading.textContent = `At the table with ${name}`;
+    heading.textContent = name;
+    const roundLabel = document.createElement("p");
+    roundLabel.className = "sc-round";
+    roundLabel.textContent = `Round ${round} of 5 · closest to 21 wins`;
+    append(title, heading, roundLabel, bubble.element);
+    portrait.appendChild(title);
     const score = document.createElement("p");
+    score.className = "sc-score";
     score.textContent = `You ${playerWins} · ${name} ${companionWins} · ties add no points`;
     const table = document.createElement("div");
     table.className = "sc-table";
     append(
       table,
+      portrait,
       hand(name, companion, phase === "player"),
-      hand("You", player, false),
+      hand("You", player, false)
     );
-    const message = document.createElement("p");
-    message.className = "sc-speech";
-    message.setAttribute("aria-live", "polite");
-    message.textContent = `${name}: “${speech}”${source ? ` · ${source}` : ""}`;
     const state = document.createElement("p");
     state.setAttribute("role", "status");
     state.textContent = paused
@@ -106,7 +136,7 @@ export async function mount(
     append(
       controls,
       button("Hit · H", "hit", paused || phase !== "player"),
-      button("Stand · S", "stand", paused || phase !== "player"),
+      button("Stand · S", "stand", paused || phase !== "player")
     );
     if (phase === "result")
       append(
@@ -114,8 +144,8 @@ export async function mount(
         button(
           round === 5 ? "Play another match" : "Next round",
           "next",
-          paused,
-        ),
+          paused
+        )
       );
     const rules = document.createElement("details");
     const summary = document.createElement("summary");
@@ -124,21 +154,11 @@ export async function mount(
     copy.textContent =
       "Five rounds, usually 2–4 minutes. Closest to 21 wins; over 21 loses. Aces count as 1 or 11, face cards as 10. You play first; both hands stay hidden from the opponent until their turn ends. A fresh shuffled 52-card deck each round. No bets, splits, insurance or blackjack bonuses. The companion has at most two choices per round, then stands. Ties score no points. H: hit; S: stand. Use buttons with touch, Tab and Enter.";
     append(rules, summary, copy);
-    append(
-      root,
-      eyebrow,
-      heading,
-      score,
-      table,
-      message,
-      state,
-      controls,
-      rules,
-    );
+    append(root, table, score, state, controls, rules);
     if (focused) {
       const nextFocus = focusedAction
         ? root.querySelector<HTMLButtonElement>(
-            `button[data-action="${focusedAction}"]:not(:disabled)`,
+            `button[data-action="${focusedAction}"]:not(:disabled)`
           )
         : null;
       (nextFocus ?? root).focus({ preventScroll: true });
@@ -152,7 +172,6 @@ export async function mount(
     player = [draw(), draw()];
     companion = [draw(), draw()];
     phase = "player";
-    source = "";
     status = "Your turn. Hit for another card, or stand.";
     render();
   }
@@ -161,7 +180,23 @@ export async function mount(
     const result = winner(player, companion);
     if (result === "player") playerWins++;
     if (result === "companion") companionWins++;
-    status = `${result === "tie" ? "Round tied" : result === "player" ? "You win the round" : `${name} wins the round`}. You: ${handValue(player)}; ${name}: ${handValue(companion)}.${round === 5 ? ` Match complete: ${playerWins === companionWins ? "a tie" : playerWins > companionWins ? "you win" : `${name} wins`}.` : ""}`;
+    status = `${
+      result === "tie"
+        ? "Round tied"
+        : result === "player"
+        ? "You win the round"
+        : `${name} wins the round`
+    }. You: ${handValue(player)}; ${name}: ${handValue(companion)}.${
+      round === 5
+        ? ` Match complete: ${
+            playerWins === companionWins
+              ? "a tie"
+              : playerWins > companionWins
+              ? "you win"
+              : `${name} wins`
+          }.`
+        : ""
+    }`;
     const reportId = `${matchId}:round:${round}`;
     options.bridge.report({ id: reportId, summary: status, kind: "outcome" });
     render();
@@ -174,7 +209,7 @@ export async function mount(
       .then((reply) => {
         if (valid(token) && phase === "result") {
           speech = reply.speech.slice(0, 500);
-          source = reply.source;
+          bubble.say(speech);
           render();
         }
       })
@@ -220,11 +255,11 @@ export async function mount(
               ? reply.choiceId
               : fallback;
           speech = reply.speech.slice(0, 500);
-          source = reply.source;
+          bubble.say(speech);
         } catch {
           if (!valid(token)) break;
-          speech = "I’ll use the table’s simple fallback for this turn.";
-          source = "fallback";
+          speech = "I’ll trust my first instinct with this hand.";
+          bubble.say(speech);
         }
         if (choice === "stand") {
           finish();
@@ -262,7 +297,7 @@ export async function mount(
   }
   const click = (event: Event) => {
     const target = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      "button[data-action]",
+      "button[data-action]"
     );
     if (target && !target.disabled) act(target.dataset.action!);
   };
@@ -280,21 +315,27 @@ export async function mount(
     }
   };
   const game: MountedGame = {
+    say(text) {
+      if (!destroyed) bubble.say(text);
+    },
     pause() {
       if (destroyed || paused) return;
       paused = true;
+      bubble.pause();
       epoch++;
       render();
     },
     resume() {
       if (destroyed) return;
       paused = false;
+      bubble.resume();
       render();
       void companionTurn();
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      bubble.destroy();
       epoch++;
       root.removeEventListener("click", click);
       root.removeEventListener("keydown", key);
@@ -306,6 +347,9 @@ export async function mount(
   root.addEventListener("keydown", key);
   options.signal.addEventListener("abort", game.destroy, { once: true });
   if (options.signal.aborted) game.destroy();
-  else startRound();
+  else {
+    startRound();
+    bubble.say(speech);
+  }
   return game;
 }

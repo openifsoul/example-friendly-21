@@ -1,9 +1,8 @@
 .soul-cards {
   color: var(--foreground);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: clamp(16px, 3vw, 32px);
+  background: transparent;
+  border: 0;
+  padding: 0;
   max-width: 880px;
   margin: auto;
 }
@@ -21,7 +20,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;
-  margin: 20px 0;
+  margin: 0 0 18px;
 }
 .soul-cards .sc-hand + .sc-hand {
   border-top: 1px dashed var(--border);
@@ -107,4 +106,40 @@
 .soul-cards details p {
   color: var(--muted-foreground);
   line-height: 1.6;
+}
+
+.soul-cards .sc-portrait {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.soul-cards .sc-portrait img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--card);
+}
+.soul-cards .sc-portrait h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.soul-cards .sc-round {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+}
+.soul-cards .sc-score {
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.soul-cards .sc-portrait > div {
+  min-width: 0;
+  flex: 1;
+}
+.soul-cards .game-speech-bubble {
+  max-width: 100% !important;
 }
